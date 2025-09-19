@@ -58,3 +58,41 @@ def project_embeddings(embeddings, umap_transform):
     for i, embedding in enumerate(tqdm(embeddings)): 
         umap_embeddings[i] = umap_transform.transform([embedding])
     return umap_embeddings
+
+def load_chroma_persist(filename,collection_name,embedding_function,dir_path = "./chroma_db" , force_create = False):
+    chroma_client = chromadb.PersistentClient(path=dir_path)
+    try:
+        chroma_collection = chroma_client.get_collection(name=collection_name,embedding_function=embedding_function)
+        print(f"Loading the existing chroma collection {collection_name}")
+        return chroma_collection
+    
+    except Exception:
+        print(f"creating new collection {collection_name}")
+        print("📖 Reading PDF...")
+        texts = _read_pdf(filename)
+        print("✂️ Chunking texts...")
+        chunks = _chunk_texts(texts)
+        ids = [str(i) for i in range(len(chunks))]
+        chroma_collection = chroma_client.create_collection(name=collection_name,embedding_function=embedding_function)
+        batch_size = 50        
+        for i in tqdm(range(0, len(chunks), batch_size), desc="Processing batches"):
+            batch_end = min(i + batch_size, len(chunks))
+            batch_chunks = chunks[i:batch_end]
+            batch_ids = ids[i:batch_end]
+            
+            chroma_collection.add(
+                ids=batch_ids,
+                documents=batch_chunks
+            )
+            
+        print("✅ Collection created successfully!")
+        return chroma_collection
+
+
+if __name__ == "__main__":
+    from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+    filename = "microsoft_annual_report_2022.pdf"
+    collection_name = "microsoft_annual_report_2022"
+    emb_func = SentenceTransformerEmbeddingFunction()
+    load_chroma_persist(filename,collection_name,emb_func)
+    
