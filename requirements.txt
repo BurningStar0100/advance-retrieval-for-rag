@@ -4,3 +4,4 @@ pypdf
 tqdm
 matplotlib
 umap
+sentence-transformers
