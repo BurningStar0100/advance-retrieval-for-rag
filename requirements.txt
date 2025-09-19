@@ -2,3 +2,5 @@ chromadb
 langchain
 pypdf
 tqdm
+matplotlib
+umap
